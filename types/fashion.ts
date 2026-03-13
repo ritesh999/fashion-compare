@@ -1,5 +1,3 @@
-// types/fashion.ts
-
 export interface RetailerProduct {
   retailer: string;
   name: string;

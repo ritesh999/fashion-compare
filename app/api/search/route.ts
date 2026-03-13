@@ -1,4 +1,3 @@
-// app/api/search/route.ts
 // Server-side agentic loop — Anthropic API key never reaches the browser
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest) {
         iter++;
 
         const response = await client.messages.create({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 4096,
           system: SYSTEM,
           tools: [{ type: "web_search_20250305" as any, name: "web_search" } as any],

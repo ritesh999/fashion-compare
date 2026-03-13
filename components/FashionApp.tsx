@@ -1,5 +1,4 @@
 "use client";
-// components/FashionApp.tsx
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { RetailerProduct, AgentStep } from "@/types/fashion";
@@ -408,7 +407,7 @@ export default function FashionApp() {
 
         {/* Layout */}
         <div style={{display:"grid",gridTemplateColumns:"240px 1fr",gap:24,alignItems:"start",animation:"slideUp .4s .2s ease both"}}>
-          
+
           {/* Sidebar */}
           <div style={{background:"#fff",borderRadius:20,padding:"22px",border:"1.5px solid #e2e8f0",boxShadow:"0 2px 12px rgba(0,0,0,.05)",position:"sticky",top:76}}>
             <div style={{fontSize:12,fontWeight:800,letterSpacing:"1px",textTransform:"uppercase",color:"#0f172a",marginBottom:20}}>Filter & Sort</div>
