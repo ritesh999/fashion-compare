@@ -1,4 +1,4 @@
-# FashPrice — AI Fashion Price Comparison
+# FlashPrice — AI Fashion Price Comparison
 
 Compare prices across ASOS, Zalando, Zara, H&M, Uniqlo, Mango, Shein, Pull&Bear — powered by Claude AI.
 
