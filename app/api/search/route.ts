@@ -1,4 +1,3 @@
-// app/api/search/route.ts
 // Server-side agentic loop — Anthropic API key never reaches the browser
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -44,13 +43,21 @@ function sse(data: object) {
 }
 
 export async function POST(req: NextRequest) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }), { status: 500 });
+  }
+
   const { query } = await req.json();
 
   if (!query?.trim()) {
     return new Response(JSON.stringify({ error: "Missing query" }), { status: 400 });
   }
+  if (query.length > 200) {
+    return new Response(JSON.stringify({ error: "Query too long (max 200 characters)" }), { status: 400 });
+  }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const client = new Anthropic({ apiKey });
 
   const encoder = new TextEncoder();
   const stream = new TransformStream<Uint8Array, Uint8Array>();
@@ -76,7 +83,7 @@ export async function POST(req: NextRequest) {
         iter++;
 
         const response = await client.messages.create({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 4096,
           system: SYSTEM,
           tools: [{ type: "web_search_20250305" as any, name: "web_search" } as any],
@@ -100,7 +107,12 @@ export async function POST(req: NextRequest) {
           const text = (content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text ?? "";
           const match = text.replace(/```json|```/g, "").match(/\[[\s\S]*\]/);
           if (!match) throw new Error("No JSON array in response");
-          const results = JSON.parse(match[0]);
+          let results: unknown[];
+          try {
+            results = JSON.parse(match[0]);
+          } catch {
+            throw new Error("Failed to parse JSON from response");
+          }
           await send({ type: "done", text: `✓ ${results.length} results found`, results });
           return;
         }

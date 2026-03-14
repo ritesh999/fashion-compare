@@ -1,5 +1,4 @@
 "use client";
-// components/FashionApp.tsx
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { RetailerProduct, AgentStep } from "@/types/fashion";
@@ -35,43 +34,58 @@ function useSearch() {
     setResults([]);
     setSearchCount(0);
 
-    const res = await fetch("/api/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
 
-    if (!res.ok || !res.body) {
-      setLogs(p => [...p, { type:"error", text:`HTTP ${res.status}` }]);
-      setStatus("error");
-      return;
-    }
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+        signal: controller.signal,
+      });
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const parts = buf.split("\n\n");
-      buf = parts.pop() ?? "";
-
-      for (const chunk of parts) {
-        const line = chunk.replace(/^data: /, "").trim();
-        if (!line) continue;
-        try {
-          const evt = JSON.parse(line);
-          if (evt.type === "search") setSearchCount(c => c + 1);
-          if (evt.type === "done" && evt.results) {
-            setResults(evt.results);
-            setStatus("done");
-          }
-          if (evt.type === "error") setStatus("error");
-          setLogs(p => [...p, { type: evt.type, text: evt.text }]);
-        } catch {}
+      if (!res.ok || !res.body) {
+        setLogs(p => [...p, { type:"error", text:`HTTP ${res.status}` }]);
+        setStatus("error");
+        return;
       }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split("\n\n");
+        buf = parts.pop() ?? "";
+
+        for (const chunk of parts) {
+          const line = chunk.replace(/^data: /, "").trim();
+          if (!line) continue;
+          try {
+            const evt = JSON.parse(line);
+            if (evt.type === "search") setSearchCount(c => c + 1);
+            if (evt.type === "done" && evt.results) {
+              setResults(evt.results);
+              setStatus("done");
+            }
+            if (evt.type === "error") setStatus("error");
+            setLogs(p => [...p, { type: evt.type, text: evt.text }]);
+          } catch (e) {
+            setLogs(p => [...p, { type:"error", text:`Parse error: ${e instanceof Error ? e.message : String(e)}` }]);
+            setStatus("error");
+          }
+        }
+      }
+    } catch (e) {
+      const msg = (e instanceof Error && e.name === "AbortError") ? "Search timed out after 90s" : (e instanceof Error ? e.message : String(e));
+      setLogs(p => [...p, { type:"error", text: msg }]);
+      setStatus("error");
+    } finally {
+      clearTimeout(timeout);
     }
   }, []);
 
@@ -168,7 +182,7 @@ function ProductCard({ product, rank, avgPrice }: { product:RetailerProduct; ran
           </div>
         )}
 
-        <button onClick={()=>product.url&&window.open(product.url,"_blank")}
+        <button onClick={()=>product.url&&product.url.startsWith("https://")&&window.open(product.url,"_blank","noopener,noreferrer")}
           style={{width:"100%",padding:"11px 0",background:hov||isTop?m.color:"transparent",border:`2px solid ${m.color}`,
             borderRadius:10,color:hov||isTop?"#fff":m.color,fontSize:12,fontWeight:800,
             letterSpacing:"1.5px",textTransform:"uppercase",cursor:"pointer",transition:"all .2s ease",fontFamily:"monospace"}}>
@@ -408,7 +422,7 @@ export default function FashionApp() {
 
         {/* Layout */}
         <div style={{display:"grid",gridTemplateColumns:"240px 1fr",gap:24,alignItems:"start",animation:"slideUp .4s .2s ease both"}}>
-          
+
           {/* Sidebar */}
           <div style={{background:"#fff",borderRadius:20,padding:"22px",border:"1.5px solid #e2e8f0",boxShadow:"0 2px 12px rgba(0,0,0,.05)",position:"sticky",top:76}}>
             <div style={{fontSize:12,fontWeight:800,letterSpacing:"1px",textTransform:"uppercase",color:"#0f172a",marginBottom:20}}>Filter & Sort</div>
@@ -475,7 +489,7 @@ export default function FashionApp() {
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:38,fontWeight:900,color:"#fff",letterSpacing:"-2px",fontFamily:"'Playfair Display',Georgia,serif"}}>€{best.price.toFixed(2)}</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginBottom:10}}>€{(avgPrice-best.price).toFixed(2)} cheaper than average</div>
-                  <button onClick={()=>best.url&&window.open(best.url,"_blank")} style={{padding:"10px 24px",background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.5)",borderRadius:12,color:"#fff",fontSize:12,fontWeight:800,letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",backdropFilter:"blur(8px)"}}>
+                  <button onClick={()=>best.url&&best.url.startsWith("https://")&&window.open(best.url,"_blank","noopener,noreferrer")} style={{padding:"10px 24px",background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.5)",borderRadius:12,color:"#fff",fontSize:12,fontWeight:800,letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",backdropFilter:"blur(8px)"}}>
                     Shop Now →
                   </button>
                 </div>
