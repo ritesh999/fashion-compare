@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
           const text = (content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text ?? "";
           const match = text.replace(/```json|```/g, "").match(/\[[\s\S]*\]/);
           if (!match) throw new Error("No JSON array in response");
-          let results: unknown;
+          let results: unknown[];
           try {
             results = JSON.parse(match[0]);
           } catch {

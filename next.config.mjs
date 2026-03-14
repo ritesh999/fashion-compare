@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Allow streaming responses
-  serverActions: {
-    bodySizeLimit: "2mb",
+  experimental: {
+    // Allow streaming responses
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
   },
 };
 
